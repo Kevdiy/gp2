@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>蓋博符號 視力回復</title>
+    <style>
+        :root {
+            --bg-current: #B3B3B3;
+            --primary-green: #27ae60;
+            --accent-red: #e74c3c;
+            --info-blue: #3498db;
+        }
+
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background-color: var(--bg-current);
+            margin: 0;
+            height: 100vh;
+            height: 100svh; 
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+            transition: background-color 0.8s ease;
+            touch-action: manipulation;
+        }
+
+        #header {
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(8px);
+            z-index: 20;
+            flex-shrink: 0;
+            padding-top: env(safe-area-inset-top);
+        }
+
+        .stat-box { background: white; padding: 4px 8px; border-radius: 6px; min-width: 60px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-weight: bold; font-size: 0.85rem;}
+
+        #overtime-msg {
+            display: none;
+            background: var(--accent-red);
+            color: white;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            z-index: 15;
+        }
+
+        #main-stage {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        #game-container {
+            display: grid;
+            gap: 3px;
+            background: #FFF; 
+            padding: 5px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            margin: 0 auto; 
+        }
+
+        .tile {
+            aspect-ratio: 1 / 1;
+            background-color: #B3B3B3;
+            cursor: pointer;
+            overflow: hidden;
+            display: flex;
+            border: 1px solid transparent;
+            box-sizing: border-box;
+            border-radius: 4px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .tile.selected { border: 3px solid #FF0000; outline: 1px solid white; }
+        .tile.hidden { visibility: hidden; pointer-events: none; }
+
+        .gabor-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        #overlay, #report-overlay, #info-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            z-index: 500; color: white; text-align: center; padding: 20px;
+        }
+
+        .card {
+            background: white; color: #333; padding: 25px;
+            border-radius: 20px; width: 85%; max-width: 350px;
+            max-height: 80vh; overflow-y: auto;
+        }
+
+        .info-content { text-align: left; font-size: 0.95rem; line-height: 1.6; }
+        button {
+            padding: 14px 30px; font-size: 1.1rem; margin-top: 10px;
+            cursor: pointer; border: none; border-radius: 12px;
+            background: var(--primary-green); color: white; font-weight: bold;
+            width: 100%;
+        }
+        button.secondary { background: var(--info-blue); }
+        button.close-btn { background: #777; margin-top: 15px; }
+
+        h1 { font-size: 1.6rem; margin-bottom: 5px; }
+        h2 { font-size: 1.2rem; font-weight: normal; opacity: 0.9; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <div class="stat-box">⏱️ <span id="timer">03:00</span></div>
+        <div class="stat-box">🏆 <span id="clear-count">0</span></div>
+        <div class="stat-box">🎯 <span id="accuracy">0</span>%</div>
+        <div class="stat-box">🖱️ <span id="click-count">0</span></div>
+    </div>
+
+    <div id="overtime-msg">⚠️ 時間到！請完成剩餘配對以查看報告</div>
+
+    <div id="main-stage">
+        <div id="game-container"></div>
+    </div>
+
+    <div id="overlay">
+        <h1>Gabor Patches Trainer</h1>
+        <h2>蓋博符號視力回復遊戲</h2>
+        <div style="width: 80%; max-width: 300px;">
+            <button onclick="startGame()">開始訓練 (3分鐘)</button>
+            <button class="secondary" onclick="document.getElementById('info-overlay').style.display='flex'">蓋博符號的原理與功效</button>
+        </div>
+    </div>
+
+    <div id="info-overlay" style="display:none">
+        <div class="card">
+            <h2 style="color:#222; font-weight:bold; margin-bottom:15px;">蓋博符號的原理與功效</h2>
+            <div class="info-content">
+                <p><b>🧠 大腦視覺訓練：</b> 著重於「活化大腦」的視覺處理能力，改善因視力模糊導致的大腦運算下降。</p>
+                <p><b>👁️ 改善多種視力問題：</b> 研究顯示能幫助矯正老花眼、近視、弱視等。</p>
+                <p><b>🛡️ 預防失智症：</b> 提升視力可減少腦部「逆向訓練」的機率，間接預防失智。</p>
+                <p><b>🔬 科學依據：</b> 已獲得加州大學等研究機構證實。</p>
+            </div>
+            <button class="close-btn" onclick="document.getElementById('info-overlay').style.display='none'">回到主畫面</button>
+        </div>
+    </div>
+
+    <div id="report-overlay" style="display:none">
+        <div class="card">
+            <h2 style="margin:0; font-weight:bold; color:#222">📊 訓練報告</h2>
+            <hr style="border:0; border-top:1px solid #eee; margin:15px 0">
+            <p>完成關卡: <b id="res-levels" style="color:var(--primary-green); font-size:1.4rem">0</b></p>
+            <p>準確率: <b id="res-acc" style="color:var(--primary-green); font-size:1.4rem">0%</b></p>
+            <p>總點擊: <b id="res-clicks" style="color:var(--primary-green); font-size:1.4rem">0</b></p>
+            <button onclick="location.reload()">重新開始</button>
+        </div>
+    </div>
+
+    <script>
+        // 20 個 PNG 檔案名稱清單
+        const allImgs = [
+            '1a', '1b', '1c', '1d', '2a', '2b', '2c', '2d', '3a', '3b', 
+            '3c', '3d', '4a', '4b', '4c', '4d', '5a', '5b', '5c', '5d'
+        ];
+
+        let timeLeft = 180;
+        let clearance = 0;
+        let totalClicks = 0;
+        let successfulClicks = 0;
+        let isOvertime = false;
+        let timerId = null;
+        let cycleIndex = 0; 
+        let selectedTile = null;
+        let matchesFound = 0;
+        let totalPairs = 0;
+        let currentBoardSymbols = []; 
+
+        function getRandomPastel() {
+            const h = Math.floor(Math.random() * 360);
+            return `hsl(${h}, 35%, 82%)`;
+        }
+
+        function getLevelConfig() {
+            const isPortrait = window.innerHeight > window.innerWidth;
+            // Level 1: 4x4, Level 2: 4x6, Level 3: 5x6
+            const layouts = isPortrait ? [[4,4], [6,4], [6,5]] : [[4,4], [4,6], [5,6]];
+            return {
+                rows: layouts[cycleIndex][0],
+                cols: layouts[cycleIndex][1]
+            };
+        }
+
+        function initLevel(isFirstLoad = false, isResize = false) {
+            if (!isOvertime && !isResize || isFirstLoad) {
+                document.body.style.backgroundColor = getRandomPastel();
+            }
+
+            const container = document.getElementById('game-container');
+            const config = getLevelConfig();
+            
+            // 計算畫布尺寸 (考慮 iPhone 安全區域)
+            const winW = window.innerWidth;
+            const headerHeight = document.getElementById('header').offsetHeight;
+            const overtimeHeight = isOvertime ? document.getElementById('overtime-msg').offsetHeight : 0;
+            const winH = window.innerHeight - headerHeight - overtimeHeight - 20;
+
+            const maxTileW = (winW * 0.86) / config.cols;
+            const maxTileH = (winH * 0.84) / config.rows;
+            const finalPx = Math.floor(Math.min(maxTileW, maxTileH));
+
+            container.style.gridTemplateColumns = `repeat(${config.cols}, ${finalPx}px)`;
+            totalPairs = Math.floor((config.rows * config.cols) / 2);
+
+            if (!isResize) {
+                matchesFound = 0;
+                currentBoardSymbols = [];
+                
+                // --- 依照配比挑選不重複圖案 ---
+                const easyPool = allImgs.slice(0, 10).sort(() => Math.random() - 0.5);
+                const hardPool = allImgs.slice(10, 20).sort(() => Math.random() - 0.5);
+                let selectedImgs = [];
+
+                if (cycleIndex === 0) { 
+                    // Level 1: 4x4 (16格 = 8對) -> 5 Easy + 3 Hard
+                    selectedImgs = [...easyPool.slice(0, 5), ...hardPool.slice(0, 3)];
+                } else if (cycleIndex === 1) { 
+                    // Level 2: 4x6 (24格 = 12對) -> 6 Easy + 6 Hard
+                    selectedImgs = [...easyPool.slice(0, 6), ...hardPool.slice(0, 6)];
+                } else { 
+                    // Level 3: 5x6 (30格 = 15對) -> 5 Easy + 10 Hard
+                    selectedImgs = [...easyPool.slice(0, 5), ...hardPool.slice(0, 10)];
+                }
+
+                // 將圖案加入棋盤數據
+                selectedImgs.forEach(imgName => {
+                    currentBoardSymbols.push({id: imgName, status: 'visible'}, {id: imgName, status: 'visible'});
+                });
+
+                // 補足空格 (如有)
+                while(currentBoardSymbols.length < (config.rows * config.cols)) {
+                    currentBoardSymbols.push({id: null, status: 'hidden'});
+                }
+
+                // 最終洗牌
+                currentBoardSymbols.sort(() => Math.random() - 0.5);
+            }
+
+            // 渲染 Tile
+            container.innerHTML = '';
+            currentBoardSymbols.forEach((item, idx) => {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.style.width = `${finalPx}px`;
+                tile.style.height = `${finalPx}px`;
+
+                if (item.id === null || item.status === 'hidden') {
+                    tile.classList.add('hidden');
+                } else {
+                    const img = document.createElement('img');
+                    img.className = 'gabor-img';
+                    img.src = `imgs/${item.id}.png`; // 讀取路徑
+                    tile.appendChild(img);
+                    tile.dataset.id = item.id;
+                    tile.dataset.index = idx;
+                    tile.onclick = () => onTileClick(tile);
+                }
+                container.appendChild(tile);
+            });
+        }
+
+        function startGame() {
+            document.getElementById('overlay').style.display = 'none';
+            initLevel(true);
+            timerId = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            if (timeLeft > 0) {
+                timeLeft--;
+                let mins = Math.floor(timeLeft / 60);
+                let secs = timeLeft % 60;
+                document.getElementById('timer').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else if (!isOvertime) {
+                isOvertime = true;
+                document.getElementById('timer').style.color = 'red';
+                document.getElementById('overtime-msg').style.display = 'block';
+            }
+        }
+
+        function onTileClick(tile) {
+            if (tile === selectedTile || tile.classList.contains('hidden')) return;
+            totalClicks++;
+            tile.classList.add('selected');
+
+            if (!selectedTile) {
+                selectedTile = tile;
+            } else {
+                if (selectedTile.dataset.id === tile.dataset.id) {
+                    successfulClicks += 2;
+                    const t1 = tile;
+                    const t2 = selectedTile;
+                    selectedTile = null; 
+                    setTimeout(() => {
+                        currentBoardSymbols[t1.dataset.index].status = 'hidden';
+                        currentBoardSymbols[t2.dataset.index].status = 'hidden';
+                        t1.classList.add('hidden');
+                        t2.classList.add('hidden');
+                        matchesFound++;
+                        if (matchesFound === totalPairs) {
+                            if (isOvertime) showReport();
+                            else {
+                                clearance++;
+                                cycleIndex = (cycleIndex + 1) % 3;
+                                initLevel();
+                            }
+                        }
+                    }, 200);
+                } else {
+                    const prev = selectedTile;
+                    setTimeout(() => {
+                        tile.classList.remove('selected');
+                        prev.classList.remove('selected');
+                    }, 400);
+                    selectedTile = null;
+                }
+            }
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('click-count').innerText = totalClicks;
+            document.getElementById('clear-count').innerText = clearance;
+            let acc = totalClicks === 0 ? 0 : Math.round((successfulClicks / totalClicks) * 100);
+            document.getElementById('accuracy').innerText = acc;
+        }
+
+        function showReport() {
+            clearInterval(timerId);
+            document.getElementById('res-levels').innerText = clearance;
+            let acc = totalClicks === 0 ? 0 : Math.round((successfulClicks / totalClicks) * 100);
+            document.getElementById('res-acc').innerText = acc + "%";
+            document.getElementById('res-clicks').innerText = totalClicks;
+            document.getElementById('report-overlay').style.display = 'flex';
+        }
+
+        // 防抖動旋轉處理
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => { if (timerId) initLevel(false, true); }, 250);
+        });
+
+        // 註冊 Service Worker (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js');
+            });
+        }
+    </script>
+</body>
+</html>
