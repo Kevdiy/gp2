@@ -117,6 +117,7 @@
             background: var(--primary-green); color: white; font-weight: bold;
             width: 100%;
         }
+        button:disabled { background: #777; cursor: wait; }
         button.secondary { background: var(--info-blue); }
         button.close-btn { background: #777; margin-top: 15px; }
 
@@ -143,7 +144,7 @@
         <h1>Gabor Patches Trainer</h1>
         <h2>蓋博符號視力回復遊戲</h2>
         <div style="width: 80%; max-width: 300px;">
-            <button onclick="startGame()">開始訓練 (3分鐘)</button>
+            <button id="start-btn" onclick="startGame()" disabled>載入中...</button>
             <button class="secondary" onclick="document.getElementById('info-overlay').style.display='flex'">蓋博符號的原理與功效</button>
         </div>
     </div>
@@ -152,10 +153,10 @@
         <div class="card">
             <h2 style="color:#222; font-weight:bold; margin-bottom:15px;">蓋博符號的原理與功效</h2>
             <div class="info-content">
-                <p><b>🧠 大腦視覺訓練：</b> 著重於「活化大腦」的視覺處理能力，改善因視力模糊導致的大腦運算下降。</p>
-                <p><b>👁️ 改善多種視力問題：</b> 研究顯示能幫助矯正老花眼、近視、弱視等。</p>
-                <p><b>🛡️ 預防失智症：</b> 提升視力可減少腦部「逆向訓練」的機率，間接預防失智。</p>
-                <p><b>🔬 科學依據：</b> 已獲得加州大學等研究機構證實。</p>
+                <p><b>🧠 大腦視覺訓練：</b> 活化大腦處理能力。</p>
+                <p><b>👁️ 改善視力問題：</b> 幫助矯正老花、近視、弱視。</p>
+                <p><b>🛡️ 預防失智症：</b> 提升視力減少腦部退化風險。</p>
+                <p><b>🔬 科學依據：</b> 加州大學研究機構證實。</p>
             </div>
             <button class="close-btn" onclick="document.getElementById('info-overlay').style.display='none'">回到主畫面</button>
         </div>
@@ -173,11 +174,31 @@
     </div>
 
     <script>
-        // 20 個 PNG 檔案名稱清單
-        const allImgs = [
-            '1a', '1b', '1c', '1d', '2a', '2b', '2c', '2d', '3a', '3b', 
-            '3c', '3d', '4a', '4b', '4c', '4d', '5a', '5b', '5c', '5d'
-        ];
+        const allImgs = ['1a','1b','1c','1d','2a','2b','2c','2d','3a','3b','3c','3d','4a','4b','4c','4d','5a','5b','5c','5d'];
+        
+        // --- 新增：圖片預載邏輯 ---
+        const preloadedImages = {};
+        let loadedCount = 0;
+
+        function preloadAllImages() {
+            const startBtn = document.getElementById('start-btn');
+            allImgs.forEach(name => {
+                const img = new Image();
+                img.onload = () => {
+                    loadedCount++;
+                    if (loadedCount === allImgs.length) {
+                        startBtn.innerText = "開始訓練 (3分鐘)";
+                        startBtn.disabled = false;
+                    }
+                };
+                img.onerror = () => console.error("Failed to load:", name);
+                img.src = `imgs/${name}.png`;
+                preloadedImages[name] = img; // 存入記憶體快取
+            });
+        }
+
+        // 頁面開啟即刻開始預載
+        window.onload = preloadAllImages;
 
         let timeLeft = 180;
         let clearance = 0;
@@ -198,12 +219,8 @@
 
         function getLevelConfig() {
             const isPortrait = window.innerHeight > window.innerWidth;
-            // Level 1: 4x4, Level 2: 4x6, Level 3: 5x6
             const layouts = isPortrait ? [[4,4], [6,4], [6,5]] : [[4,4], [4,6], [5,6]];
-            return {
-                rows: layouts[cycleIndex][0],
-                cols: layouts[cycleIndex][1]
-            };
+            return { rows: layouts[cycleIndex][0], cols: layouts[cycleIndex][1] };
         }
 
         function initLevel(isFirstLoad = false, isResize = false) {
@@ -214,7 +231,6 @@
             const container = document.getElementById('game-container');
             const config = getLevelConfig();
             
-            // 計算畫布尺寸 (考慮 iPhone 安全區域)
             const winW = window.innerWidth;
             const headerHeight = document.getElementById('header').offsetHeight;
             const overtimeHeight = isOvertime ? document.getElementById('overtime-msg').offsetHeight : 0;
@@ -230,38 +246,28 @@
             if (!isResize) {
                 matchesFound = 0;
                 currentBoardSymbols = [];
-                
-                // --- 依照配比挑選不重複圖案 ---
                 const easyPool = allImgs.slice(0, 10).sort(() => Math.random() - 0.5);
                 const hardPool = allImgs.slice(10, 20).sort(() => Math.random() - 0.5);
                 let selectedImgs = [];
 
                 if (cycleIndex === 0) { 
-                    // Level 1: 4x4 (16格 = 8對) -> 5 Easy + 3 Hard
                     selectedImgs = [...easyPool.slice(0, 5), ...hardPool.slice(0, 3)];
                 } else if (cycleIndex === 1) { 
-                    // Level 2: 4x6 (24格 = 12對) -> 6 Easy + 6 Hard
                     selectedImgs = [...easyPool.slice(0, 6), ...hardPool.slice(0, 6)];
                 } else { 
-                    // Level 3: 5x6 (30格 = 15對) -> 5 Easy + 10 Hard
                     selectedImgs = [...easyPool.slice(0, 5), ...hardPool.slice(0, 10)];
                 }
 
-                // 將圖案加入棋盤數據
                 selectedImgs.forEach(imgName => {
                     currentBoardSymbols.push({id: imgName, status: 'visible'}, {id: imgName, status: 'visible'});
                 });
 
-                // 補足空格 (如有)
                 while(currentBoardSymbols.length < (config.rows * config.cols)) {
                     currentBoardSymbols.push({id: null, status: 'hidden'});
                 }
-
-                // 最終洗牌
                 currentBoardSymbols.sort(() => Math.random() - 0.5);
             }
 
-            // 渲染 Tile
             container.innerHTML = '';
             currentBoardSymbols.forEach((item, idx) => {
                 const tile = document.createElement('div');
@@ -272,9 +278,9 @@
                 if (item.id === null || item.status === 'hidden') {
                     tile.classList.add('hidden');
                 } else {
-                    const img = document.createElement('img');
+                    // 直接使用預載好的圖片物件
+                    const img = preloadedImages[item.id].cloneNode(); 
                     img.className = 'gabor-img';
-                    img.src = `imgs/${item.id}.png`; // 讀取路徑
                     tile.appendChild(img);
                     tile.dataset.id = item.id;
                     tile.dataset.index = idx;
@@ -359,18 +365,14 @@
             document.getElementById('report-overlay').style.display = 'flex';
         }
 
-        // 防抖動旋轉處理
         let resizeTimer;
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(() => { if (timerId) initLevel(false, true); }, 250);
         });
 
-        // 註冊 Service Worker (PWA)
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js');
-            });
+            window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js'); });
         }
     </script>
 </body>
