@@ -153,10 +153,17 @@
         <div class="card">
             <h2 style="color:#222; font-weight:bold; margin-bottom:15px;">蓋博符號的原理與功效</h2>
             <div class="info-content">
-                <p><b>🧠 大腦視覺訓練：</b> 活化大腦處理能力。</p>
-                <p><b>👁️ 改善視力問題：</b> 幫助矯正老花、近視、弱視。</p>
-                <p><b>🛡️ 預防失智症：</b> 提升視力減少腦部退化風險。</p>
-                <p><b>🔬 科學依據：</b> 加州大學研究機構證實。</p>
+                <h3>🧠 大腦視覺訓練</h3>
+                <p>不同於傳統眼球運動，蓋博符號著重於「活化大腦」的視覺處理能力，改善因視力模糊而導致的大腦運算能力下降。</p>
+                
+                <h3>👁️ 改善多種視力問題</h3>
+                <p>研究顯示能幫助矯正老花眼、近視、弱視等，部分受試者視力獲得明顯提升。</p>
+                
+                <h3>🛡️ 預防失智症</h3>
+                <p>有研究認為視力衰退與大腦退化有關，透過蓋博訓練提升視力，可減少腦部「逆向訓練」的機率，間接預防失智。</p>
+                
+                <h3>🔬 科學依據</h3>
+                <p>該訓練法已獲得加州大學等研究機構證實。</p>
             </div>
             <button class="close-btn" onclick="document.getElementById('info-overlay').style.display='none'">回到主畫面</button>
         </div>
@@ -309,8 +316,18 @@
             }
         }
 
-        function onTileClick(tile) {
-            if (tile === selectedTile || tile.classList.contains('hidden')) return;
+function onTileClick(tile) {
+            if (tile.classList.contains('hidden')) return;
+            
+            // --- 新增：如果點擊的是同一個已選中的格子 ---
+            if (tile === selectedTile) {
+                tile.classList.remove('selected'); // 取消選取視覺效果
+                selectedTile = null;               // 清空選取狀態
+                totalClicks--;                     // 扣除這一次的點擊數 (因為剛才進 function 已經 +1 了，所以這裡扣回，等於不變)
+                updateStats();                     // 更新數據面板
+                return;
+            }
+
             totalClicks++;
             tile.classList.add('selected');
 
